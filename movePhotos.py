@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 import os
 import sys
-import PIL.Image
-import PIL.ExifTags
 import shutil
 from datetime import datetime
+import PIL.Image
+import PIL.ExifTags
 
 
 
-VERSION='0.0.0.1'
+
+
+VERSION='0.0.1'
 EXIF_DATETIME_TAG=36867
-NEW_PATH_PREFIX='/home/torfinn/tmp'
 # Date/time format in EXIF data from jpeg files: '2016:03:25 21:29:36'
 DATETIME_PATTERN='%Y:%m:%d %H:%M:%S'
+monthDirName = ['01 Januar', '02 Februar', '03 Mars', '04 April', '05 Mai', '06 Juni', '07 Juli', '08 August', '09 September', '10 Oktober', '11 November', '12 Desember']
+
 
 
 
 def isPhotoFile(fileExtension):
-    photoExtensions = [".jpg", ".jpeg", ".png"]
+    photoExtensions = [".jpg", ".jpeg"]
     if fileExtension in photoExtensions:
         return True
     else:
@@ -25,14 +28,13 @@ def isPhotoFile(fileExtension):
 
 
 def initial():
-    print('MovePhotos version', VERSION)
+    print('Welcome to MovePhotos version', VERSION)
 
     src_dir = os.path.dirname(os.path.realpath(__file__))
 
     if len(sys.argv) != 2:
-        print(f'Usage: {__name__} <destiantion directory>')
+        print(f'Usage: {os.path.basename(__file__)} <destiantion directory>')
         sys.exit(0)
-        #dest_dir = NEW_PATH_PREFIX
     else:
         dest_dir = str(sys.argv[1])
         print('Moving files from {} to {}'.format(src_dir, dest_dir))
@@ -56,15 +58,13 @@ def traversDirectories(src_dir, dest_dir):
                     dt: datetime = datetime.strptime(dateTimeStr, DATETIME_PATTERN)
                     year = dt.year
                     month = dt.month
-                if file_extension == '.png':
-                    print('PNG format not supported yet!')
-                    year = 2018
-                    month = 7
+                #if file_extension == '.png':
+                #    print('PNG format not supported yet!')
 
                 # Move/copy the file
-                newpathname = dest_dir + '/' + str(year) + '/' + str(month) + '/' + file;
+                newpathname = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
                 print('Copies from: ', pathname, ' ==> to : ', newpathname)
-                shutil.copyfile(pathname, newpathname)
+                shutil.copy2(pathname, newpathname)
 
 
 
