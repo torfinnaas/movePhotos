@@ -17,6 +17,7 @@ DATETIME_PATTERN='%Y:%m:%d %H:%M:%S'
 monthDirName = ['01 Januar', '02 Februar', '03 Mars', '04 April', '05 Mai', '06 Juni',
                 '07 Juli', '08 August', '09 September', '10 Oktober', '11 November', '12 Desember']
 filesMoved = 0
+maxNoFiles = -1  # No limit
 
 
 
@@ -30,16 +31,22 @@ def isPhotoFile(fileExtension):
 
 
 def initial():
+    global maxNoFiles
+
     print('Welcome to MovePhotos version', VERSION)
 
     src_dir = os.path.dirname(os.path.realpath(__file__))
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) <= 2:
         print(f'Usage: {os.path.basename(__file__)} <destiantion directory>')
         sys.exit(0)
     else:
+        if len(sys.argv) >= 3:
+            maxNoFiles = int(sys.argv[2])
+        else:
+            maxNoFiles = -1
         dest_dir = str(sys.argv[1])
-        print('Moving files from {} to {}'.format(src_dir, dest_dir))
+        print('Moving {} files from {} to {}'.format(maxNoFiles, src_dir, dest_dir))
 
     return (src_dir, dest_dir)
 
@@ -48,6 +55,7 @@ def initial():
 
 def traversDirectories(src_dir, dest_dir):
     global filesMoved
+    global maxNoFiles
 
     for root, dirs, files in os.walk(src_dir):
         print(f'Directory: {root}:')
@@ -68,10 +76,20 @@ def traversDirectories(src_dir, dest_dir):
 
                 # Move/copy the file
                 newpathname = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
-                print('Copies from: ', pathname, ' ==> to : ', newpathname)
+                print('Moving from: ', pathname, ' ==> to : ', newpathname)
                 #shutil.copy2(pathname, newpathname)
-                shutil.move(pathname, newpathname)
-                filesMoved += 1
+                try:
+                    shutil.move(pathname, newpathname)
+                    filesMoved += 1
+                    if filesMoved >= maxNoFiles:
+                        print(filesMoved, maxNoFiles)
+                        break
+                except:
+                    print(f'*** file could not be moved ({newpathname})')
+
+        if filesMoved >= maxNoFiles:
+            print('- max files moved!')
+            break
 
 
 
