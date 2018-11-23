@@ -37,7 +37,7 @@ def initial():
 
     src_dir = os.path.dirname(os.path.realpath(__file__))
 
-    if len(sys.argv) <= 2:
+    if len(sys.argv) < 2:
         print(f'Usage: {os.path.basename(__file__)} <destiantion directory>')
         sys.exit(0)
     else:
@@ -48,12 +48,12 @@ def initial():
         dest_dir = str(sys.argv[1])
         print('Moving {} files from {} to {}'.format(maxNoFiles, src_dir, dest_dir))
 
-    return (src_dir, dest_dir)
+    return src_dir, dest_dir
 
 
 
 
-def traversDirectories(src_dir, dest_dir):
+def traversDirectories(src_dir: object, dest_dir: object) -> object:
     global filesMoved
     global maxNoFiles
 
@@ -71,31 +71,32 @@ def traversDirectories(src_dir, dest_dir):
                     dt: datetime = datetime.strptime(dateTimeStr, DATETIME_PATTERN)
                     year = dt.year
                     month = dt.month
-                #if file_extension == '.png':
+                # if file_extension == '.png':
                 #    print('PNG format not supported yet!')
 
                 # Move/copy the file
-                newpathname = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
-                print('Moving from: ', pathname, ' ==> to : ', newpathname)
-                #shutil.copy2(pathname, newpathname)
+                newPathName = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
+                print('Moving from: ', pathname, ' ==> to : ', newPathName)
+                #shutil.copy2(pathname, newPathName)
                 try:
-                    shutil.move(pathname, newpathname)
+                    shutil.move(pathname, newPathName)
                     filesMoved += 1
-                    if filesMoved >= maxNoFiles:
-                        print(filesMoved, maxNoFiles)
-                        break
+                    if maxNoFiles != -1:
+                        if filesMoved >= maxNoFiles:
+                            break
                 except:
-                    print(f'*** file could not be moved ({newpathname})')
+                    print(f'*** file could not be moved ({newPathName})')
 
-        if filesMoved >= maxNoFiles:
-            print('- max files moved!')
-            break
+        if maxNoFiles != -1:
+            if filesMoved >= maxNoFiles:
+                print('- max files moved!')
+                break
 
 
 
 if __name__ == '__main__':
     curr_dir, new_dir = initial()
     traversDirectories(curr_dir, new_dir)
-    print(f'Files moved: {filesMoved}')
+    print(f'Total files moved: {filesMoved}')
 else:
     print('This module can only be executed standalone')
