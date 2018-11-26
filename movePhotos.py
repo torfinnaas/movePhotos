@@ -37,9 +37,9 @@ def initial():
     print('MovePhotos version', VERSION)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('destDirectory', default=None, help="Destination directory to move the files to”")
-    parser.add_argument("--maxCount", help=": the maximum number of files to move", default=-1)
-    parser.add_argument("--copy", help=": copies files instead of moving them", action="store_true")
+    parser.add_argument('destDirectory', default=None, help='Destination directory to move or copy the files to')
+    parser.add_argument("--maxCount", help="the maximum number of files to move", default=-1)
+    parser.add_argument("--copy", help="copies files instead of moving them", action="store_true")
     args = parser.parse_args()
 
     src_dir = os.path.dirname(os.path.realpath(__file__))
