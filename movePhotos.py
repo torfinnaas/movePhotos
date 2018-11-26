@@ -34,7 +34,7 @@ def isPhotoFile(fileExtension):
 def initial():
     global maxNoFiles, operation
 
-    print('Welcome to MovePhotos version', VERSION)
+    print('MovePhotos version', VERSION)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('destDirectory', default=None, help="Destination directory to move the files to”")
@@ -84,7 +84,7 @@ def traversDirectories(src_dir: object, dest_dir: object) -> object:
 
                 # Move/copy the file
                 newPathName = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
-                print('Moving from: ', pathname, ' ==> to : ', newPathName)
+                print('{} from: ', operation, pathname, ' ==> to : ', newPathName)
 
                 try:
                     if operation == 'Moving':
@@ -96,7 +96,8 @@ def traversDirectories(src_dir: object, dest_dir: object) -> object:
                     if maxNoFiles != -1:
                         if filesMoved >= maxNoFiles:
                             break
-                except:
+                except ex:
+                    print(ex)
                     print(f'*** file could not be handled ({newPathName})')
 
         if maxNoFiles != -1:
