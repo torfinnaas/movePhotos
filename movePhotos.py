@@ -5,7 +5,7 @@ import shutil
 from datetime import datetime
 import PIL.Image
 import PIL.ExifTags
-
+import argparse
 
 
 
@@ -18,6 +18,7 @@ monthDirName = ['01 Januar', '02 Februar', '03 Mars', '04 April', '05 Mai', '06 
                 '07 Juli', '08 August', '09 September', '10 Oktober', '11 November', '12 Desember']
 filesMoved = 0
 maxNoFiles = -1  # No limit
+operation = 'Moving'  # moving or copy
 
 
 
@@ -31,31 +32,38 @@ def isPhotoFile(fileExtension):
 
 
 def initial():
-    global maxNoFiles
+    global maxNoFiles, operation
 
     print('Welcome to MovePhotos version', VERSION)
 
-    src_dir = os.path.dirname(os.path.realpath(__file__))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('destDirectory', default=None, help="Destination directory to move the files to”")
+    parser.add_argument("--maxCount", help=": the maximum number of files to move", default=-1)
+    parser.add_argument("--copy", help=": copies files instead of moving them", action="store_true")
+    args = parser.parse_args()
 
-    if len(sys.argv) < 2:
-        print(f'Usage: {os.path.basename(__file__)} <destiantion directory>')
-        sys.exit(0)
+    src_dir = os.path.dirname(os.path.realpath(__file__))
+    dest_dir = args.destDirectory
+    maxNoFiles = -1 if args.maxCount == '-1' else int(args.maxCount)
+    operation = 'Copying' if args.copy else 'Moving'
+
+    if maxNoFiles != -1:
+        print('{} {} files from {} to {}'.format(operation, maxNoFiles, src_dir, dest_dir))
     else:
-        if len(sys.argv) >= 3:
-            maxNoFiles = int(sys.argv[2])
-        else:
-            maxNoFiles = -1
-        dest_dir = str(sys.argv[1])
-        print('Moving {} files from {} to {}'.format(maxNoFiles, src_dir, dest_dir))
+        print('{} files from {} to {}'.format(operation, src_dir, dest_dir))
 
     return src_dir, dest_dir
 
 
 
 
+
+
+
+
+
 def traversDirectories(src_dir: object, dest_dir: object) -> object:
-    global filesMoved
-    global maxNoFiles
+    global filesMoved, maxNoFiles, operation
 
     for root, dirs, files in os.walk(src_dir):
         print(f'Directory: {root}:')
@@ -77,26 +85,36 @@ def traversDirectories(src_dir: object, dest_dir: object) -> object:
                 # Move/copy the file
                 newPathName = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
                 print('Moving from: ', pathname, ' ==> to : ', newPathName)
-                #shutil.copy2(pathname, newPathName)
+
                 try:
-                    shutil.move(pathname, newPathName)
+                    if operation == 'Moving':
+                        shutil.move(pathname, newPathName)
+                    else:
+                        shutil.copy2(pathname, newPathName)
+
                     filesMoved += 1
                     if maxNoFiles != -1:
                         if filesMoved >= maxNoFiles:
                             break
                 except:
-                    print(f'*** file could not be moved ({newPathName})')
+                    print(f'*** file could not be handled ({newPathName})')
 
         if maxNoFiles != -1:
             if filesMoved >= maxNoFiles:
-                print('- max files moved!')
+                print('- max files handled!')
                 break
+
+
+def main():
+    curr_dir, new_dir = initial()
+    traversDirectories(curr_dir, new_dir)
+    print(f'Total files handled: {filesMoved}')
+
+
 
 
 
 if __name__ == '__main__':
-    curr_dir, new_dir = initial()
-    traversDirectories(curr_dir, new_dir)
-    print(f'Total files moved: {filesMoved}')
+    main()
 else:
-    print('This module can only be executed standalone')
+    print('This program can only be executed standalone, not as a module!')
