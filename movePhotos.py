@@ -3,8 +3,7 @@ import os
 import sys
 import shutil
 from datetime import datetime
-import PIL.Image
-import PIL.ExifTags
+from PIL import Image
 import argparse
 
 
@@ -24,7 +23,7 @@ operation = 'Moving'  # moving or copy
 
 
 def isPhotoFile(fileExtension):
-    photoExtensions = [".jpg", ".jpeg"]
+    photoExtensions = [".jpg", ".jpeg", ".png"]
     if fileExtension in photoExtensions:
         return True
     else:
@@ -73,32 +72,46 @@ def traversDirectories(src_dir: object, dest_dir: object) -> object:
             temp, file_extension = os.path.splitext(file)
             if os.path.exists(pathname) and isPhotoFile(file_extension):
                 if file_extension == '.jpg' or file_extension == '.jpeg':
-                    img = PIL.Image.open(pathname)
+                    img = Image.open(pathname)
                     exif_data = img._getexif()
                     dateTimeStr = exif_data.get(EXIF_DATETIME_TAG)
                     dt: datetime = datetime.strptime(dateTimeStr, DATETIME_PATTERN)
                     year = dt.year
                     month = dt.month
-                # if file_extension == '.png':
-                #    print('PNG format not supported yet!')
+
+                if file_extension == '.png':
+                    print(f'*** PNG format not supported yet! ({pathname})')
+                    continue
 
                 # Move/copy the file
                 newPathName = dest_dir + '/' + str(year) + '/' + monthDirName[month-1] + '/' + file;
-                print('{} from: ', operation, pathname, ' ==> to : ', newPathName)
 
-                try:
-                    if operation == 'Moving':
-                        shutil.move(pathname, newPathName)
-                    else:
-                        shutil.copy2(pathname, newPathName)
+                for i in range(2):   # retry one time in case of missing directory
+                    try:
+                        if operation == 'Moving':
+                            shutil.move(pathname, newPathName)
+                        else:
+                            shutil.copy2(pathname, newPathName)
 
-                    filesMoved += 1
-                    if maxNoFiles != -1:
-                        if filesMoved >= maxNoFiles:
-                            break
-                except ex:
-                    print(ex)
-                    print(f'*** file could not be handled ({newPathName})')
+                        print(f'  {operation} from: {pathname} ==> to : {newPathName}')
+                        filesMoved += 1
+                        break    # don't retry
+                    except FileNotFoundError:
+                        # probably the directory does not exists.Try to create
+                        if not os.path.exists(dest_dir + '/' + str(year)):
+                            os.mkdir(dest_dir + '/' + str(year))
+                        if not os.path.exists(dest_dir + '/' + str(year) + '/' + monthDirName[month-1]):
+                            os.mkdir(dest_dir + '/' + str(year) + '/' + monthDirName[month-1])
+                        continue   # retry the copy/move
+                    except:
+                        print(f'Unknown exception: {sys.exc_info()[1]}')
+                        print(f'*** file could not be handled ({newPathName})')
+                        break
+
+            if maxNoFiles != -1:
+                if filesMoved >= maxNoFiles:
+                    break
+
 
         if maxNoFiles != -1:
             if filesMoved >= maxNoFiles:
