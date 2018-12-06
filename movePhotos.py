@@ -6,7 +6,7 @@ from datetime import datetime
 from PIL import Image
 import argparse
 
-VERSION = '0.0.1'
+VERSION = '0.1.0'
 EXIF_DATETIME_TAG = 36867
 # Date/time format in EXIF data from jpeg files: '2016:03:25 21:29:36'
 DATETIME_PATTERN = '%Y:%m:%d %H:%M:%S'
@@ -24,11 +24,25 @@ def is_photo_file(file_extension):
     else:
         return False
 
+def log_error(msg):
+    global logfile
+
+    logfile.write('*** Exception: ' + msg + "\n")
+    print('  *' + msg)
+
+
+def log_message(msg):
+    global logfile
+
+    logfile.write(msg + "\n")
+    print(msg)
+
+
 
 def initial():
     global maxNoFiles, operation
 
-    print('MovePhotos version', VERSION)
+    log_message('MovePhotos version ' + VERSION)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('destDirectory', default=None, help='Destination directory to move or copy the files to')
@@ -42,9 +56,10 @@ def initial():
     operation = 'Copying' if args.copy else 'Moving'
 
     if maxNoFiles != -1:
-        print('{} {} files from {} to {}'.format(operation, maxNoFiles, src_dir, dest_dir))
+        msg = '{} {} files from {} to {}'.format(operation, maxNoFiles, src_dir, dest_dir)
     else:
-        print('{} files from {} to {}'.format(operation, src_dir, dest_dir))
+        msg = '{} files from {} to {}'.format(operation, src_dir, dest_dir)
+    log_message(msg)
 
     return src_dir, dest_dir
 
@@ -65,38 +80,51 @@ def travers_directories(src_dir: object, dest_dir: object) -> object:
                     img = Image.open(pathname)
                     exif_data = img._getexif()
                     date_time_str = exif_data.get(EXIF_DATETIME_TAG)
+                    if date_time_str is None:
+                        log_error("Could not retrieve date info (skipping this file): " + pathname)
+                        continue  # try next file
+
                     dt: datetime = datetime.strptime(date_time_str, DATETIME_PATTERN)
                     year = dt.year
                     month = dt.month
 
                 if file_extension == '.png':
-                    print(f'*** PNG format not supported yet! ({pathname})')
+                    log_error("PNG format not supported yet! File : " + pathname)
                     continue
 
                 # Move/copy the file
                 new_path_name = dest_dir + '/' + str(year) + '/' + monthDirName[month - 1] + '/' + file;
 
-                for i in range(2):  # retry one time in case of missing directory
-                    try:
-                        if operation == 'Moving':
-                            shutil.move(pathname, new_path_name)
-                        else:
-                            shutil.copy2(pathname, new_path_name)
+                # First ensure the directory is present
+                if not os.path.exists(dest_dir + '/' + str(year)):
+                    os.mkdir(dest_dir + '/' + str(year))
+                    # create complete directory set for this year
+                    for i in range(len(monthDirName)):
+                        os.mkdir(dest_dir + '/' + str(year) + '/' + monthDirName[i])
+                    print(f'  Created directories for year {year}')
 
-                        print(f'  {operation} from: {pathname} ==> to : {new_path_name}')
-                        filesMoved += 1
-                        break  # don't retry
-                    except FileNotFoundError:
-                        # probably the directory does not exists.Try to create
-                        if not os.path.exists(dest_dir + '/' + str(year)):
-                            os.mkdir(dest_dir + '/' + str(year))
-                        if not os.path.exists(dest_dir + '/' + str(year) + '/' + monthDirName[month - 1]):
-                            os.mkdir(dest_dir + '/' + str(year) + '/' + monthDirName[month - 1])
-                        continue  # retry the copy/move
-                    except:
-                        print(f'Unknown exception: {sys.exc_info()[1]}')
-                        print(f'*** file could not be handled ({new_path_name})')
-                        break
+                if not os.path.exists(dest_dir + '/' + str(year) + '/' + monthDirName[month - 1]):
+                    os.mkdir(dest_dir + '/' + str(year) + '/' + monthDirName[month - 1])
+                    print('  Created directory {}'.format(str(year) + '/' + monthDirName[month - 1]))
+
+                # Check if file already exists
+                if os.path.isfile(new_path_name):
+                    log_error("File already exists in destination (skipping this file): " + new_path_name)
+                    continue
+
+
+                try:
+                    if operation == 'Moving':
+                        shutil.move(pathname, new_path_name)
+                    else:
+                        shutil.copy2(pathname, new_path_name)
+
+                    print(f'  {operation} from: {pathname} ==> to : {new_path_name}')
+                    filesMoved += 1
+                except:
+                    print(f'Unknown exception: {sys.exc_info()[1]}')
+                    print(f'*** file could not be handled: ({new_path_name})')
+                    break
 
             if maxNoFiles != -1:
                 if filesMoved >= maxNoFiles:
@@ -111,10 +139,11 @@ def travers_directories(src_dir: object, dest_dir: object) -> object:
 def main():
     curr_dir, new_dir = initial()
     travers_directories(curr_dir, new_dir)
-    print(f'Total files handled: {filesMoved}')
+    log_message(f'Total files handled: {filesMoved}')
 
 
 if __name__ == '__main__':
+    logfile = open("movePhotos.log", "w")
     main()
 else:
     print('This program can only be executed standalone, not as a module!')
